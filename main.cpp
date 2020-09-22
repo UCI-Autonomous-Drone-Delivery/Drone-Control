@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <cmath>
 #include <utility>
+#include <time.h>
+#include <stdlib.h>
 #include "SimpleShell.hpp"
 #include "common/Common.hpp"
 #include "common/common_utils/Utils.hpp"
@@ -469,7 +471,7 @@ public:
 
         // MY CODE
 
-        std::cout << "Where do you want the drone to fly to?" << std::endl;
+        /* std::cout << "Where do you want the drone to fly to?" << std::endl;
         std::cout << "x: ";
         std::cin >> x;
         std::cout << "\n";
@@ -478,9 +480,13 @@ public:
         std::cout << "\n";
         std::cout << "z: ";
         std::cin >> z;
-        std::cout << "\n";
+        std::cout << "\n"; */
         
-    
+        //Picks a random number from 1 to 10 and assigns it to x,y,z
+        //Only positive #'s for x,y and negative #'s for z
+        x = float(rand() % 20 + (-10)); 
+        y = float(rand() % 20 + (-10));
+        z = float(rand() % 20 + (-10));
 
         //float velocity = getSwitch("-velocity").toFloat();
         //float duration = getSwitch("-duration").toFloat();
@@ -497,6 +503,52 @@ public:
                 drivetrain, yawMode, lookahead, adaptive_lookahead);
         }); */
 
+        std::cout << "[The drone is flying to " << x << ", " << y << ", " << z << "]" << std::endl;
+        context->tasker.execute([=]() {
+            context->client.moveToPositionAsync(x, y, z, velocity, duration,
+                drivetrain, yawMode, lookahead, adaptive_lookahead);
+            });
+
+        return false;
+    }
+};
+
+class MoveToRandomPositionCommand : public DroneCommand {
+public:
+    MoveToRandomPositionCommand() : DroneCommand("MoveToRandomPosition", "Move to random x,y,z with specified velocity")
+    {
+        this->addSwitch({ "-x", "0", "x position in meters (default 0)" });
+        this->addSwitch({ "-y", "0", "y position in meters (default 0)" });
+        this->addSwitch({ "-z", "-2.5", "z position in meters (default -2.5)" });
+        this->addSwitch({ "-velocity", "0.5", "the velocity to approach the position in meters per second (default 0.5)" });
+        this->addSwitch({ "-duration", "0", "maximum time to wait to reach position (default no wait)" });
+        addYawModeSwitches();
+        addDriveTrainSwitch();
+        addLookaheadSwitches();
+        addRelativeSwitch();
+    }
+
+    bool execute(const DroneCommandParameters& params)
+    {
+        CommandContext* context = params.context;
+        float x;
+        float y;
+        float z;
+        srand(unsigned int(time(NULL)));
+
+        //Picks a random number from -10 to 10 and assigns it to x,y,z
+        x = float(rand() % 20 + (-10));
+        y = float(rand() % 20 + (-10));
+        z = float(rand() % 20 + (-10));
+
+        float velocity = 3;
+        float duration = 10;
+        float lookahead = getSwitch("-lookahead").toFloat();
+        float adaptive_lookahead = getSwitch("-adaptive_lookahead").toFloat();
+        auto drivetrain = getDriveTrain();
+        auto yawMode = getYawMode();
+
+        std::cout << "[The drone is flying to " << x << ", " << y << ", " << z << "]" << std::endl;
         context->tasker.execute([=]() {
             context->client.moveToPositionAsync(x, y, z, velocity, duration,
                 drivetrain, yawMode, lookahead, adaptive_lookahead);
@@ -1443,7 +1495,6 @@ void printUsage() {
 int main(int argc, const char *argv[]) {
 
     using namespace msr::airlib;
-    
 
     if (!parseCommandLine(argc, argv)) {
         printUsage();
@@ -1502,6 +1553,7 @@ int main(int argc, const char *argv[]) {
     RotateToYawCommand rotateToYaw;
     HoverCommand hover;
     MoveToPositionCommand moveToPosition;
+    MoveToRandomPositionCommand moveToRandomPosition;
     GetPositionCommand getPosition;
     MoveByManualCommand moveByManual;
     MoveByAngleZCommand moveByAngleZ;
@@ -1536,6 +1588,7 @@ int main(int argc, const char *argv[]) {
     shell.addCommand(rotateToYaw);
     shell.addCommand(hover);
     shell.addCommand(moveToPosition);
+    shell.addCommand(moveToRandomPosition);
     shell.addCommand(moveByManual);
     shell.addCommand(moveByAngleZ);
     shell.addCommand(moveByAngleThrottle);
